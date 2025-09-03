@@ -1,0 +1,19 @@
+{
+  "name": "backend-rinha-2025",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^5.1.0",
+    "formdata-node": "^6.0.3",
+    "ioredis": "^5.7.0",
+    "nodemon": "^3.1.10",
+    "undici": "^7.15.0"
+  }
+}
