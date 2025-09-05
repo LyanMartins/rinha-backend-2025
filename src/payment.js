@@ -4,53 +4,24 @@ import { Worker } from 'worker_threads';
 
 class Payment {
 
-    redis='';
+    redis = new Redis({host: "rinha-redis-node"});
     
     constructor() {
         //console.log("entrou na controler")
-        this.redis = new Redis({
-            host: "rinha-redis-node",
-        });
-    }
-
-    healthcheck = async function() 
-    {
-       const result = await this.redis.flushdb();
-    }
-
-    payment = async function(data){
-        let validated = await this.validate(data);
-        if (!validated) {
-            throw new Error('invalid payload')
-        }
         
-        let header = {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
+    }
+
+    payment = function(data){
+    //    this.redis.flushdb()
+        this.redis.rpush("queue",
+            JSON.stringify({
                 correlationId: data.correlationId,
                 amount: data.amount,
-                requestedAt: new Date()
+                requestedAt: new Date().toISOString()
             })
-        };
+        ).catch(console.error);
 
-        const leader = await this.redis.get('requestLeader')
-        let requestleader = leader == 'default' ? process.env.PAYMENT_PROCESSOR_URL_DEFAULT : PAYMENT_PROCESSOR_URL_FALLBACK;
-        let request = await fetch(`${requestleader}/payments`, header);
-
-        this.redis.rpush(leader, ...[header.body]);
-
-        return request;
-    }
-
-    validate = async function(data){
-        if(!data.correlationId) return false;
-
-        if(!data.amount) return false;
-
-        return true;
+        return 'OK';
     }
     
     paymentSummary = async function() {
@@ -64,10 +35,38 @@ class Payment {
         }
     }
 
-    worker = function() {
-        const worker = new Worker('./src/worker.js', {
-            workerData: 5,
-        });
+    healthcheck = async function() {
+        
+        const worker = new Worker('./src/healthcheck.js');
+        
+        await new Promise((resolve) => setTimeout(resolve, 5000))
+            
+        worker.terminate();
+        
+        return this.healthcheck();
     }
+
+    // processQueue = async function() {
+    //     while (true) {
+    //         console.log("start")
+    //         const worker = new Worker('./src/process.js');
+
+    //         const value = [];
+            
+    //         worker.postMessage(value);
+    //         await new Promise((resolve) => setTimeout(resolve, 3000))
+
+    //         worker.on("message", (result) => {
+    //             console.log("Resultado:", result);
+    //             worker.terminate();
+    //         });
+            
+    //         worker.on("error", (err) => {
+    //             console.error("Erro no worker:", err);
+    //             worker.terminate();
+    //         });
+    //         worker.terminate();
+    //     }
+    // }
 }
 export default Payment

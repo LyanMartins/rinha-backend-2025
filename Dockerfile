@@ -10,6 +10,7 @@ COPY package*.json ./
 # Instala dependências
 RUN npm install
 RUN npm install -g nodemon
+RUN npm i uws
 
 # Copia o restante do código
 COPY . .

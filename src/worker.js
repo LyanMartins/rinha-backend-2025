@@ -1,32 +1,47 @@
-import { parentPort, workerData } from 'worker_threads';
-import Redis from 'ioredis';
-import {request} from 'undici';
+import { Worker } from 'worker_threads';
+import { Redis } from 'ioredis';
 
+class WorkerPool {
+    constructor(workerPath, size = 4) {
+        this.workerPath = workerPath;
+        this.redis = new Redis({
+            host: "rinha-redis-node",
+        });
 
-async function healthCheck(n) {
-  const redis = new Redis({
-    host: "rinha-redis-node"
-  });
-  const [defaultProcessor, fallbackProcessor] = await Promise.all([
-    request(`${process.env.PAYMENT_PROCESSOR_URL_DEFAULT}/payments/service-health`),
-    request(`${process.env.PAYMENT_PROCESSOR_URL_FALLBACK}/payments/service-health`)
-  ]);
+        for (let i = 0; i < size; i++) {
+            this.addNewWorker(i);
+        }
+    }
 
-  const defaultRes = await defaultProcessor.body.json();
-  const fallbackRes = await fallbackProcessor.body.json();
-  console.log("Default:", defaultRes);
-  console.log("Fallback:", fallbackRes);
+    addNewWorker(id) {
+        const worker = new Worker(this.workerPath);
+        worker.on("message", (msg) => {
+            // console.log(`✅ Worker ${msg.workerId} terminou:`, msg.result);
+            this.getJob(); // pega o próximo job quando terminar
+        });
 
-  if(!defaultRes.failing && defaultRes.minResponseTime<100){
-    redis.set('requestLeader', "default");
-  }else{
-    redis.set('requestLeader', "fallback");
-  }
-  
-  console.log(await redis.get('requestLeader'))
+        worker.on("error", (err) => {
+            console.log(err)
+            //console.error(`❌ Erro no worker ${id}:`, err);
+            worker.terminate();
+            this.addNewWorker(id); // recria worker se deu erro
+        });
 
-  return;
+        this.getJob(id); 
+    }
+
+    getJob = async function(id) {
+        try {
+            const res = await this.redis.blpop("queue", 0);
+            const [, job] = res;
+
+            worker.postMessage({ workerId: id, job });
+        } catch (err) {
+            console.error(`Erro no worker ${id}:`, err);
+            setTimeout(this.getJob(), 1000); // tenta de novo depois
+        }
+    } 
+
 }
 
-const result = healthCheck(workerData);
-parentPort.close(result);
+export default WorkerPool
