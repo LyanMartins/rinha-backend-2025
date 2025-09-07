@@ -1,6 +1,16 @@
 # Imagem base do Node.js
 FROM node:20-alpine
 
+# Instalar dependências de build
+RUN apk add --no-cache \
+  git \
+  build-base \
+  python3 \
+  cmake \
+  bash
+
+RUN apk add --no-cache gcompat
+
 # Define diretório de trabalho dentro do container
 WORKDIR /app
 
@@ -10,7 +20,9 @@ COPY package*.json ./
 # Instala dependências
 RUN npm install
 RUN npm install -g nodemon
-RUN npm i uws
+
+RUN npm install git+https://github.com/uNetworking/uWebSockets.js.git#v20.43.0
+
 
 # Copia o restante do código
 COPY . .

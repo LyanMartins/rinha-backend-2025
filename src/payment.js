@@ -7,12 +7,10 @@ class Payment {
     redis = new Redis({host: "rinha-redis-node"});
     
     constructor() {
-        //console.log("entrou na controler")
-        
     }
 
     payment = function(data){
-    //    this.redis.flushdb()
+        
         this.redis.rpush("queue",
             JSON.stringify({
                 correlationId: data.correlationId,
@@ -26,10 +24,11 @@ class Payment {
     
     paymentSummary = async function() {
        try {
-            let test = await this.redis.lrange('default', 0, -1)
-            const parsed = test.map(item => JSON.parse(item));
-            console.log(JSON.stringify(parsed))
-            return parsed;
+            let paymentProcessedCalculated = {
+                'default': await this.calculatePaymentProcessed('default'),
+                'fallback': await this.calculatePaymentProcessed('fallback')
+            }
+            return JSON.stringify(paymentProcessedCalculated);
         } catch (err) {
             console.error("Erro capturado:", err);
         }
@@ -46,27 +45,21 @@ class Payment {
         return this.healthcheck();
     }
 
-    // processQueue = async function() {
-    //     while (true) {
-    //         console.log("start")
-    //         const worker = new Worker('./src/process.js');
+    purgePayment = function(){
+        this.redis.flushdb()
+    }
 
-    //         const value = [];
-            
-    //         worker.postMessage(value);
-    //         await new Promise((resolve) => setTimeout(resolve, 3000))
+    calculatePaymentProcessed = async function(paymentGateway) {
+        let test = await this.redis.lrange(paymentGateway, 0, -1)
+        const parsed = test.map(item => JSON.parse(item));
+        let totalAmount = 0;
+        totalAmount = parsed.reduce((acc, value, index) => acc + value.amount, 0);
 
-    //         worker.on("message", (result) => {
-    //             console.log("Resultado:", result);
-    //             worker.terminate();
-    //         });
-            
-    //         worker.on("error", (err) => {
-    //             console.error("Erro no worker:", err);
-    //             worker.terminate();
-    //         });
-    //         worker.terminate();
-    //     }
-    // }
+        return {
+            "totalRequests": parsed.length,
+            "totalAmount": totalAmount
+        }
+    }
+
 }
 export default Payment

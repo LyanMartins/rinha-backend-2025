@@ -2,7 +2,7 @@ import { Worker } from 'worker_threads';
 import { Redis } from 'ioredis';
 
 class WorkerPool {
-    constructor(workerPath, size = 4) {
+    constructor(workerPath, size = 2) {
         this.workerPath = workerPath;
         this.redis = new Redis({
             host: "rinha-redis-node",
@@ -17,7 +17,7 @@ class WorkerPool {
         const worker = new Worker(this.workerPath);
         worker.on("message", (msg) => {
             // console.log(`✅ Worker ${msg.workerId} terminou:`, msg.result);
-            this.getJob(); // pega o próximo job quando terminar
+            this.getJob(id, worker); // pega o próximo job quando terminar
         });
 
         worker.on("error", (err) => {
@@ -27,15 +27,15 @@ class WorkerPool {
             this.addNewWorker(id); // recria worker se deu erro
         });
 
-        this.getJob(id); 
+        this.getJob(id, worker); 
     }
 
-    getJob = async function(id) {
+    getJob = async function(id, worker) {
         try {
             const res = await this.redis.blpop("queue", 0);
             const [, job] = res;
-
-            worker.postMessage({ workerId: id, job });
+            console.log(res);
+            worker.postMessage({ job });
         } catch (err) {
             console.error(`Erro no worker ${id}:`, err);
             setTimeout(this.getJob(), 1000); // tenta de novo depois
