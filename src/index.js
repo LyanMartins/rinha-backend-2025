@@ -11,12 +11,12 @@ import WorkerPool from './worker.js';
 // const app = uWS.App();
 // const app = express();
 const app = Fastify({
-  logger: true
+  logger: false
 })
 // app.use(express.json());
 const payment = new Payment();
 payment.healthcheck()
-// new WorkerPool('./src/process.js')
+new WorkerPool('./src/process.js')
 // 
 
 

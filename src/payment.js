@@ -4,7 +4,7 @@ import { Worker } from 'worker_threads';
 
 class Payment {
 
-    redis = new Redis({host: "rinha-redis-node"});
+    redis = new Redis({path: "/var/run/redis/redis.sock"});
     
     constructor() {
     }

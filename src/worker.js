@@ -2,11 +2,12 @@ import { Worker } from 'worker_threads';
 import { Redis } from 'ioredis';
 
 class WorkerPool {
-    constructor(workerPath, size = 2) {
+    
+    redis = new Redis({ path: "/var/run/redis/redis.sock" });
+
+    constructor(workerPath, size = 4) {
         this.workerPath = workerPath;
-        this.redis = new Redis({
-            host: "rinha-redis-node",
-        });
+        
 
         for (let i = 0; i < size; i++) {
             this.addNewWorker(i);
