@@ -5,10 +5,9 @@ class WorkerPool {
     
     redis = new Redis({ path: "/var/run/redis/redis.sock" });
 
-    constructor(workerPath, size = 4) {
+    constructor(workerPath, size = 10) {
         this.workerPath = workerPath;
         
-
         for (let i = 0; i < size; i++) {
             this.addNewWorker(i);
         }
@@ -39,7 +38,7 @@ class WorkerPool {
             worker.postMessage({ job });
         } catch (err) {
             console.error(`Erro no worker ${id}:`, err);
-            setTimeout(this.getJob(), 1000); // tenta de novo depois
+            setTimeout(() => this.getJob(id, worker), 1000); // tenta de novo depois
         }
     } 
 

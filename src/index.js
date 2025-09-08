@@ -17,7 +17,7 @@ const app = Fastify({
 const payment = new Payment();
 payment.healthcheck()
 new WorkerPool('./src/process.js')
-// 
+
 
 
 // app.get('/', (res, req) => {
@@ -32,8 +32,8 @@ app.get('/', async function(req, res){
     return res.send(await new Payment().healthcheck());
 })
 
-app.post('/payments', function(req, res){
-    let response = payment.payment(req.body);
+app.post('/payments', async function(req, res){
+    let response = await payment.payment(req.body);
     return res.send(response)
 })
 

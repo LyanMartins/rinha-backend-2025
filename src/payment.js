@@ -9,24 +9,33 @@ class Payment {
     constructor() {
     }
 
-    payment = function(data){
+    payment = async function(data){
         
-        this.redis.rpush("queue",
-            JSON.stringify({
+        await this.redis.rpush("queue", JSON.stringify({
                 correlationId: data.correlationId,
                 amount: data.amount,
                 requestedAt: new Date().toISOString()
-            })
-        ).catch(console.error);
+            }));
+        // this.redis.rpush("queue",
+        //     JSON.stringify({
+        //         correlationId: data.correlationId,
+        //         amount: data.amount,
+        //         requestedAt: new Date().toISOString()
+        //     })
+        // ).catch(console.error);
 
         return 'OK';
     }
     
     paymentSummary = async function() {
        try {
+            
+            // const fall = await this.redis.lrange('fallback', 0, -1);
+            const [def, fall] = await Promise.all([this.calculatePaymentProcessed('default'), this.calculatePaymentProcessed('fallback')]);
+            // console.log(result);
             let paymentProcessedCalculated = {
-                'default': await this.calculatePaymentProcessed('default'),
-                'fallback': await this.calculatePaymentProcessed('fallback')
+                'default': def,
+                'fallback': fall
             }
             return JSON.stringify(paymentProcessedCalculated);
         } catch (err) {
@@ -50,14 +59,14 @@ class Payment {
     }
 
     calculatePaymentProcessed = async function(paymentGateway) {
-        let test = await this.redis.lrange(paymentGateway, 0, -1)
-        const parsed = test.map(item => JSON.parse(item));
-        let totalAmount = 0;
-        totalAmount = parsed.reduce((acc, value, index) => acc + value.amount, 0);
+        const [totalRequests, totalAmount] = await this.redis.mget(
+            `${paymentGateway}:totalRequests`,
+            `${paymentGateway}:totalAmount`
+        );
 
         return {
-            "totalRequests": parsed.length,
-            "totalAmount": totalAmount
+            "totalRequests": totalRequests??0,
+            "totalAmount": totalAmount??0
         }
     }
 

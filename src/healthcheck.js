@@ -14,8 +14,8 @@ async function healthCheck() {
 
   const defaultRes = await defaultProcessor.body.json();
   const fallbackRes = await fallbackProcessor.body.json();
-  console.log("Default:", defaultRes);
-  console.log("Fallback:", fallbackRes);
+  // console.log("Default:", defaultRes);
+  // console.log("Fallback:", fallbackRes);
 
   if(!defaultRes.failing && defaultRes.minResponseTime<100){
     redis.set('requestLeader', "default");
@@ -23,9 +23,9 @@ async function healthCheck() {
     redis.set('requestLeader', "fallback");
   }
   
-  console.log(await redis.get('requestLeader'))
+  // console.log(await redis.get('requestLeader'))
 
-  console.log("finish")
+  // console.log("finish")
   return;
 }
 
